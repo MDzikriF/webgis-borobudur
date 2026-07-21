@@ -2,29 +2,28 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 import pandas as pd
-import geopandas as gpd
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, mapping
 import numpy as np
 from datetime import datetime
-
+ 
 # Set page configuration
 st.set_page_config(
     page_title="Peta Interaktif Zonasi Konservasi Borobudur",
     page_icon="🏛️",
     layout="wide"
 )
-
+ 
 # Title dan deskripsi
 st.title("🏛️ Peta Interaktif Zonasi Konservasi dan Aksesibilitas Wisata Edukasi Situs Purbakala")
 st.markdown("**Studi Kasus: Candi Borobudur, Magelang, Jawa Tengah**")
-
+ 
 # ============================================================================
 # DATA DUMMY PREPARATION (Simulasi hasil analisis spasial di QGIS)
 # ============================================================================
-
+ 
 # Koordinat Candi Borobudur
 borobudur_center = {"lat": -7.6075, "lon": 110.2039}
-
+ 
 # 1. DATA SITUS UTAMA (Candi Borobudur)
 sites_data = {
     "name": ["Candi Borobudur - Kompleks Utama"],
@@ -34,8 +33,8 @@ sites_data = {
     "risk_level": ["Sedang"],
     "geometry": [Point(borobudur_center["lon"], borobudur_center["lat"])]
 }
-sites_gdf = gpd.GeoDataFrame(sites_data, crs="EPSG:4326")
-
+sites_gdf = pd.DataFrame(sites_data)
+ 
 # 2. DATA ZONA PENYANGGA (Buffer Zone - 1km dan 2km)
 def create_buffer_circle(center_lon, center_lat, radius_km):
     """Buat circle buffer dalam derajat (approximation)"""
@@ -48,7 +47,7 @@ def create_buffer_circle(center_lon, center_lat, radius_km):
         lat = center_lat + radius_deg * np.sin(rad)
         points.append((lon, lat))
     return Polygon(points)
-
+ 
 buffer_zone_data = {
     "zone_type": ["Buffer 500m - Zona Ketat", "Buffer 1km - Zona Terbatas", "Buffer 2km - Zona Pengawasan"],
     "capacity": ["0 (Larangan Penuh)", "Terbatas", "Terbatas Moderat"],
@@ -63,8 +62,8 @@ buffer_zone_data = {
         create_buffer_circle(borobudur_center["lon"], borobudur_center["lat"], 2.0)
     ]
 }
-buffer_gdf = gpd.GeoDataFrame(buffer_zone_data, crs="EPSG:4326")
-
+buffer_gdf = pd.DataFrame(buffer_zone_data)
+ 
 # 3. DATA FASILITAS WISATA & EDUKASI
 facilities_data = {
     "name": [
@@ -97,8 +96,8 @@ facilities_data = {
         Point(110.2100, -7.6200)
     ]
 }
-facilities_gdf = gpd.GeoDataFrame(facilities_data, crs="EPSG:4326")
-
+facilities_gdf = pd.DataFrame(facilities_data)
+ 
 # 4. DATA POS PEMANTAUAN/PENJAGA SITUS
 monitoring_data = {
     "name": [
@@ -121,8 +120,8 @@ monitoring_data = {
         Point(110.2050, -7.6200)
     ]
 }
-monitoring_gdf = gpd.GeoDataFrame(monitoring_data, crs="EPSG:4326")
-
+monitoring_gdf = pd.DataFrame(monitoring_data)
+ 
 # 5. DATA CANDI LAIN DI SEKITAR BOROBUDUR (untuk filter periodisasi)
 other_temples = {
     "name": ["Candi Mendut", "Candi Pawon", "Candi Ngawen"],
@@ -137,21 +136,21 @@ other_temples = {
         Point(110.1850, -7.6100)
     ]
 }
-other_temples_gdf = gpd.GeoDataFrame(other_temples, crs="EPSG:4326")
-
+other_temples_gdf = pd.DataFrame(other_temples)
+ 
 # ============================================================================
 # SIDEBAR UNTUK FILTER & KONTROL
 # ============================================================================
-
+ 
 st.sidebar.header("⚙️ Kontrol Peta")
-
+ 
 # Layer visibility toggles
 show_site = st.sidebar.checkbox("📍 Situs Candi Utama", value=True)
 show_buffer = st.sidebar.checkbox("🔴 Zona Buffer/Kerentanan", value=True)
 show_facilities = st.sidebar.checkbox("🟢 Fasilitas Wisata & Edukasi", value=True)
 show_monitoring = st.sidebar.checkbox("🔵 Pos Pemantauan/Penjaga", value=True)
 show_other_temples = st.sidebar.checkbox("🏯 Candi Lain di Sekitar", value=True)
-
+ 
 # Filter berdasarkan periodisasi
 st.sidebar.subheader("Filter Periodisasi Historis")
 periods = st.sidebar.multiselect(
@@ -159,11 +158,11 @@ periods = st.sidebar.multiselect(
     options=["Hindu", "Buddha", "Hindu-Buddha"],
     default=["Hindu", "Buddha", "Hindu-Buddha"]
 )
-
+ 
 # ============================================================================
 # PEMBUAT PETA FOLIUM INTERAKTIF
 # ============================================================================
-
+ 
 def create_interactive_map(
     sites_gdf, buffer_gdf, facilities_gdf, monitoring_gdf, other_temples_gdf,
     show_site, show_buffer, show_facilities, show_monitoring, show_other_temples,
@@ -222,7 +221,7 @@ def create_interactive_map(
             </div>
             """
             folium.GeoJson(
-                gpd.GeoSeries([row['geometry']]).__geo_interface__,
+                mapping(row['geometry']),
                 style_function=lambda x, c=color: {
                     'fillColor': c,
                     'color': c,
@@ -317,25 +316,25 @@ def create_interactive_map(
     folium.LayerControl().add_to(m)
     
     return m
-
+ 
 # Buat dan tampilkan peta
 m = create_interactive_map(
     sites_gdf, buffer_gdf, facilities_gdf, monitoring_gdf, other_temples_gdf,
     show_site, show_buffer, show_facilities, show_monitoring, show_other_temples,
     periods
 )
-
+ 
 # Tampilkan peta di Streamlit
 st.subheader("📍 Visualisasi Peta Interaktif")
 st_folium(m, width=1200, height=600)
-
+ 
 # ============================================================================
 # LEGENDA & PENJELASAN SIMBOLISASI
 # ============================================================================
-
+ 
 st.markdown("---")
 col1, col2, col3 = st.columns(3)
-
+ 
 with col1:
     st.markdown("""
     ### 🔴 Simbolisasi Warna
@@ -346,7 +345,7 @@ with col1:
     - **🔵 BIRU**: Pos Pemantauan/Penjaga
     - **🟤 COKLAT**: Candi Lain di Sekitar
     """)
-
+ 
 with col2:
     st.markdown("""
     ### 📊 Fitur Interaktif
@@ -356,7 +355,7 @@ with col2:
     ✓ **Filter Dinamis**: Pilih periode historis untuk filter candi
     ✓ **Zoom & Pan**: Arahkan zoom untuk area detail tertentu
     """)
-
+ 
 with col3:
     st.markdown(f"""
     ### 📍 Data Referensi
@@ -368,78 +367,78 @@ with col3:
     **Tahun Analisis**: {datetime.now().year}
     **Sistem Proyeksi**: EPSG:4326 (WGS84)
     """)
-
+ 
 # ============================================================================
 # RINGKASAN EKSEKUTIF & REKOMENDASI
 # ============================================================================
-
+ 
 st.markdown("---")
 st.subheader("📋 Ringkasan Eksekutif & Temuan Analisis")
-
+ 
 executive_summary = """
 #### Temuan Ancaman Ekspansi Permukiman di Zona Penyangga Candi Borobudur
-
+ 
 **Konteks Masalah:**
 Candi Borobudur sebagai Warisan Dunia UNESCO menghadapi tekanan pariwisata massal yang terus meningkat. 
 Analisis spasial menunjukkan eskalasi pembangunan permukiman dan infrastruktur komersial di sekitar zona 
 penyangga (buffer zone), khususnya dalam radius 2 km dari kompleks candi utama.
-
+ 
 **Temuan Utama:**
 1. **Risiko Getaran Struktural**: Konstruksi di Buffer 500m & 1km dapat menyebabkan microseismic activity 
    yang mengancam integritas struktur batu candi berusia 1.200+ tahun.
-
+ 
 2. **Inkonsistensi Zonasi**: Terdapat permukiman dan fasilitas wisata di zona ketat 500m yang seharusnya 
    bebas konstruksi. Kapasitas pengunjung harian mencapai 3.000+ orang, jauh melebihi daya dukung lingkungan.
-
+ 
 3. **Kesenjangan Layanan Edukasi**: Hanya 2 fasilitas pusat informasi untuk menjangkau 2 juta pengunjung/tahun. 
    Kebutuhan akan interpretive center dan guided tour berkualitas masih tinggi.
-
+ 
 **Rekomendasi Mitigasi:**
 - ✅ Pengendalian ketat pembangunan dalam Buffer 500m (zero-construction zone)
 - ✅ Peningkatan kapasitas pusat edukasi dan penjaga situs melalui teknologi monitoring berbasis AI
 - ✅ Implementasi sistem zonasi terukur dengan KPI aksesibilitas wisata berkelanjutan
 - ✅ Koordinasi lintas sektor: BPK, Dinas Pariwisata, LIPI, dan operator wisata untuk sustainability plan
 """
-
+ 
 st.info(executive_summary)
-
+ 
 # ============================================================================
 # DATA TABLE UNTUK REFERENSI
 # ============================================================================
-
+ 
 st.markdown("---")
 st.subheader("📊 Tabel Data Pendukung Analisis")
-
+ 
 tab1, tab2, tab3, tab4 = st.tabs(["Situs Purbakala", "Fasilitas Wisata", "Pos Pemantauan", "Candi Lain"])
-
+ 
 with tab1:
     st.dataframe(
         sites_gdf[['name', 'century', 'kingdom', 'status', 'risk_level']],
         use_container_width=True
     )
-
+ 
 with tab2:
     st.dataframe(
         facilities_gdf[['name', 'facility_type', 'capacity', 'service']],
         use_container_width=True
     )
-
+ 
 with tab3:
     st.dataframe(
         monitoring_gdf[['name', 'patrol_schedule', 'status']],
         use_container_width=True
     )
-
+ 
 with tab4:
     st.dataframe(
         other_temples_gdf[['name', 'century', 'kingdom', 'period', 'status', 'risk_level']],
         use_container_width=True
     )
-
+ 
 # ============================================================================
 # FOOTER
 # ============================================================================
-
+ 
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: gray; font-size: 12px; margin-top: 20px;">
