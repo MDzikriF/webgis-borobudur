@@ -175,7 +175,8 @@ def create_interactive_map(
     m = folium.Map(
         location=[borobudur_center["lat"], borobudur_center["lon"]],
         zoom_start=14,
-        tiles="OpenStreetMap"
+        tiles="OpenStreetMap",
+        control_scale=True
     )
     
     # ===== LAYER 1: SITUS UTAMA (MERAH) =====
@@ -310,8 +311,7 @@ def create_interactive_map(
                 tooltip=f"Candi: {row['name']}"
             ).add_to(m)
     
-    # Tambah skala
-    folium.ScaleControl(position="bottomleft").add_to(m)
+    # Skala sudah ditambahkan melalui control_scale=True pada Map
     
     # Tambah layer control untuk legend
     folium.LayerControl().add_to(m)
@@ -414,25 +414,25 @@ tab1, tab2, tab3, tab4 = st.tabs(["Situs Purbakala", "Fasilitas Wisata", "Pos Pe
 
 with tab1:
     st.dataframe(
-        sites_gdf[['name', 'century', 'kingdom', 'status', 'risk_level']].drop(columns=['geometry']),
+        sites_gdf[['name', 'century', 'kingdom', 'status', 'risk_level']],
         use_container_width=True
     )
 
 with tab2:
     st.dataframe(
-        facilities_gdf[['name', 'facility_type', 'capacity', 'service']].drop(columns=['geometry']),
+        facilities_gdf[['name', 'facility_type', 'capacity', 'service']],
         use_container_width=True
     )
 
 with tab3:
     st.dataframe(
-        monitoring_gdf[['name', 'patrol_schedule', 'status']].drop(columns=['geometry']),
+        monitoring_gdf[['name', 'patrol_schedule', 'status']],
         use_container_width=True
     )
 
 with tab4:
     st.dataframe(
-        other_temples_gdf[['name', 'century', 'kingdom', 'period', 'status', 'risk_level']].drop(columns=['geometry']),
+        other_temples_gdf[['name', 'century', 'kingdom', 'period', 'status', 'risk_level']],
         use_container_width=True
     )
 
